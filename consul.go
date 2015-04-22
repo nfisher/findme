@@ -23,32 +23,25 @@ func registerCheck(client *api.Client, port int) {
 
 // registers to local consul node.
 func register(client *api.Client, ip string, port int) {
-	check := &api.CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "le-bigmac.local",
-		Address:    ip,
-		Service: &api.AgentService{
-			ID:      fmt.Sprintf("simples%v", port),
-			Service: "simples",
-			Tags:    []string{"v1"},
-			Address: ip,
-			Port:    port,
-		},
-		Check: &api.AgentCheck{
-			CheckID:   fmt.Sprintf("health%v", port),
-			ServiceID: fmt.Sprintf("simples%v", port),
+	check := &api.AgentServiceRegistration{
+		ID:      fmt.Sprintf("simples%v", port),
+		Name:    "simples",
+		Tags:    []string{"v1"},
+		Address: ip,
+		Port:    port,
+		Check: &api.AgentServiceCheck{
+			TTL: "30s",
 		},
 	}
 
-	meta, err := client.Catalog().Register(check, nil)
+	err := client.Agent().ServiceRegister(check)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(meta.RequestTime)
 }
 
 func check(client *api.Client, port int) {
-	check := fmt.Sprintf("health%v", port)
+	check := fmt.Sprintf("service:simples%v", port)
 
 	for {
 		err := client.Agent().PassTTL(check, "Still running.")
@@ -65,12 +58,7 @@ func cleanup(client *api.Client, ip string, port int) {
 	client.Agent().CheckDeregister(check)
 	log.Println("Deregistered health check.")
 
-	cat := &api.CatalogDeregistration{
-		Datacenter: "dc1",
-		Node:       "le-bigmac.local",
-		Address:    ip,
-		ServiceID:  fmt.Sprintf("simples%v", port),
-		CheckID:    fmt.Sprintf("health%v", port),
-	}
-	client.Catalog().Deregister(cat, nil)
+	serviceId := fmt.Sprintf("simples%v", port)
+	client.Agent().ServiceDeregister(serviceId)
+	log.Println("Deregistered service.")
 }
