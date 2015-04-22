@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/sh -exu
 
 PLAT=`uname -s`
 ARCH=`uname -m`
@@ -7,4 +7,28 @@ export GOMAXPROCS=2
 
 go build
 
-./consul/${PLAT}/${ARCH}/consul agent -server -bootstrap-expect 1 -data-dir consul/data -ui-dir consul/ui
+./consul/${PLAT}/${ARCH}/consul agent -server -bootstrap-expect 1 -data-dir consul/data -ui-dir consul/ui &
+CONSUL=$!
+
+sleep 2
+./findme &
+PID0=$!
+./findme &
+PID1=$!
+./findme &
+PID2=$!
+sleep 2
+
+RESULT=`curl http://localhost:8500/v1/health/state/critical`
+
+kill -2 $PID2
+kill -2 $PID1
+kill -2 $PID0
+sleep 31
+kill -2 $CONSUL
+sleep 2
+
+if [ "$RESULT" == '[]' ]; then
+  exit 1
+fi
+echo $RESULT

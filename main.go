@@ -61,14 +61,16 @@ func main() {
 }
 
 type ServiceResp struct {
-	ServiceAddress string
-	ServicePort    int
+	Service struct {
+		Address string
+		Port    int
+	}
 }
 
 type handler struct{}
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get("http://localhost:8500/v1/catalog/service/simples")
+	resp, err := http.Get("http://localhost:8500/v1/health/service/simples?passing")
 	defer resp.Body.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -82,6 +84,6 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, s := range srv {
-		fmt.Fprintf(w, "%v:%v\n", html.EscapeString(s.ServiceAddress), s.ServicePort)
+		fmt.Fprintf(w, "%v:%v\n", html.EscapeString(s.Service.Address), s.Service.Port)
 	}
 }
