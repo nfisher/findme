@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html"
@@ -48,7 +49,7 @@ func main() {
 		}
 	}()
 
-	registerCheck(client, port)
+	//	registerCheck(client, port)
 	register(client, ip, port)
 	go check(client, port)
 
@@ -59,8 +60,28 @@ func main() {
 	log.Fatal(err)
 }
 
+type ServiceResp struct {
+	ServiceAddress string
+	ServicePort    int
+}
+
 type handler struct{}
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+	resp, err := http.Get("http://localhost:8500/v1/catalog/service/simples")
+	defer resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dec := json.NewDecoder(resp.Body)
+	srv := []ServiceResp{}
+	err = dec.Decode(&srv)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, s := range srv {
+		fmt.Fprintf(w, "%v:%v\n", html.EscapeString(s.ServiceAddress), s.ServicePort)
+	}
 }
