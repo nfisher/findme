@@ -1,0 +1,10 @@
+#!/bin/sh -ex
+
+PLAT=`uname -s`
+ARCH=`uname -m`
+
+export GOMAXPROCS=2
+
+go build
+
+./consul/${PLAT}/${ARCH}/consul agent -server -bootstrap-expect 1 -data-dir consul/data -ui-dir consul/ui
