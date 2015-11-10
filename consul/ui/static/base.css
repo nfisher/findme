@@ -214,7 +214,10 @@ pre {
   -o-transition: color 0.2s ease-in-out;
   transition: color 0.2s ease-in-out;
   outline: none;
-  outline-color: white; }
+  outline-color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; }
   .btn:hover {
     color: #5e5e5e;
     background-color: #f3f3f3; }

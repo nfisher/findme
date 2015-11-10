@@ -49,7 +49,6 @@ func main() {
 		}
 	}()
 
-	//	registerCheck(client, port)
 	register(client, ip, port)
 	go check(client, port)
 
@@ -70,6 +69,12 @@ type ServiceResp struct {
 type handler struct{}
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, err := os.Stat("failing.txt")
+	if err == nil {
+		http.Error(w, `Failing Because you are a wanker.`, http.StatusInternalServerError)
+		return
+	}
+
 	resp, err := http.Get("http://localhost:8500/v1/health/service/simples?passing")
 	defer resp.Body.Close()
 	if err != nil {

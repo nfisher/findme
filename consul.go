@@ -8,19 +8,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func registerCheck(client *api.Client, port int) {
-	check := &api.AgentCheckRegistration{
-		ID:    fmt.Sprintf("health%v", port),
-		Name:  "simples health status",
-		Notes: "TTL based health check.",
-	}
-	check.TTL = "30s"
-	err := client.Agent().CheckRegister(check)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 // registers to local consul node.
 func register(client *api.Client, ip string, port int) {
 	check := &api.AgentServiceRegistration{
@@ -29,24 +16,30 @@ func register(client *api.Client, ip string, port int) {
 		Tags:    []string{"v1"},
 		Address: ip,
 		Port:    port,
-		Check: &api.AgentServiceCheck{
-			TTL: "30s",
+		Checks: api.AgentServiceChecks{
+			&api.AgentServiceCheck{
+				TTL: "30s",
+			},
+			&api.AgentServiceCheck{
+				Interval: "15s",
+				HTTP:     fmt.Sprintf("http://127.0.0.1:%v/health", port),
+			},
 		},
 	}
 
 	err := client.Agent().ServiceRegister(check)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("ServiceRegister", err)
 	}
 }
 
 func check(client *api.Client, port int) {
-	check := fmt.Sprintf("service:simples%v", port)
+	check := fmt.Sprintf("service:simples%v:1", port)
 
 	for {
 		err := client.Agent().PassTTL(check, "Still running.")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Check", err)
 		}
 
 		time.Sleep(28 * time.Second)
@@ -56,7 +49,7 @@ func check(client *api.Client, port int) {
 func cleanup(client *api.Client, ip string, port int) {
 	check := fmt.Sprintf("health%v", port)
 	client.Agent().CheckDeregister(check)
-	log.Println("Deregistered health check.")
+	log.Println("Deregistered health checks")
 
 	serviceId := fmt.Sprintf("simples%v", port)
 	client.Agent().ServiceDeregister(serviceId)
